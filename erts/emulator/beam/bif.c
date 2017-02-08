@@ -4472,7 +4472,23 @@ BIF_RETTYPE system_flag_2(BIF_ALIST_2)
 	display_items = n < 32 ? 32 : n;
 	BIF_RET(make_small(oval));
     } else if (BIF_ARG_1 == am_debug_flags) {
-	BIF_RET(am_true);
+        int ret = 0;
+        if (BIF_ARG_2 == am_open) {
+            ret = goofus_open();
+        } else if (BIF_ARG_2 == am_close) {
+            ret = goofus_close();
+        } else if (BIF_ARG_2 == am_asynchronous) {
+            extern int goofus_timer_enabled;
+            ret = goofus_timer_enabled = (!goofus_timer_enabled);
+        } else if (is_small(BIF_ARG_2)) {
+            extern int goofus_timer_sleep_msec;
+            goofus_timer_sleep_msec = unsigned_val(BIF_ARG_2);
+            ret = 1;
+        }
+        if (ret == 0) {
+            BIF_RET(am_false);
+        }
+        BIF_RET(am_true);
     } else if (BIF_ARG_1 == am_backtrace_depth) {
 	int oval = erts_backtrace_depth;
 	if (!is_small(BIF_ARG_2) || (n = signed_val(BIF_ARG_2)) < 0) {

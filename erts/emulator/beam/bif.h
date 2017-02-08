@@ -40,6 +40,9 @@ extern Export *erts_convert_time_unit_trap;
 #define BIF_ARG_3  (BIF__ARGS[2])
 #define BIF_ARG_4  (BIF__ARGS[3])
 
+#define GOOFUS_CHECK(C_P) \
+    if (ERTS_GET_SCHEDULER_DATA_FROM_PROC(C_P)->goofus_count != 0) goofus_doit(C_P)
+
 #define ERTS_IS_PROC_OUT_OF_REDS(p)		\
     ((p)->fcalls > 0				\
      ? 0					\
@@ -48,6 +51,7 @@ extern Export *erts_convert_time_unit_trap;
 	: ((p)->fcalls == -CONTEXT_REDS)))
 
 #define BUMP_ALL_REDS(p) do {			\
+    GOOFUS_CHECK(p);                       \
     if (!ERTS_PROC_GET_SAVED_CALLS_BUF((p))) 	\
 	(p)->fcalls = 0; 			\
     else 					\
@@ -57,6 +61,7 @@ extern Export *erts_convert_time_unit_trap;
 
 #define ERTS_VBUMP_ALL_REDS(p)						\
 do {									\
+    GOOFUS_CHECK(p);                     \
     if (!ERTS_PROC_GET_SAVED_CALLS_BUF((p))) {				\
 	if ((p)->fcalls > 0)						\
 	    ERTS_PROC_GET_SCHDATA((p))->virtual_reds += (p)->fcalls;	\

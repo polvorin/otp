@@ -519,6 +519,7 @@ void** beam_ops;
 #define Self(R) R = c_p->common.id
 #define Node(R) R = erts_this_node->sysname
 
+
 #define Arg(N)       I[(N)+1]
 #define Next(N)                \
     I += (N) + 1;              \
@@ -1024,6 +1025,7 @@ init_emulator(void)
 #ifdef USE_VM_CALL_PROBES
 
 #define DTRACE_LOCAL_CALL(p, m, f, a)					\
+    GOOFUS_CHECK(p);                                    \
     if (DTRACE_ENABLED(local_function_entry)) {				\
         DTRACE_CHARBUF(process_name, DTRACE_TERM_BUF_SIZE);		\
         DTRACE_CHARBUF(mfa, DTRACE_TERM_BUF_SIZE);			\
@@ -1034,6 +1036,7 @@ init_emulator(void)
     }
 
 #define DTRACE_GLOBAL_CALL(p, m, f, a)					\
+    GOOFUS_CHECK(p);                                    \
     if (DTRACE_ENABLED(global_function_entry)) {			\
         DTRACE_CHARBUF(process_name, DTRACE_TERM_BUF_SIZE);		\
         DTRACE_CHARBUF(mfa, DTRACE_TERM_BUF_SIZE);			\
@@ -1044,6 +1047,7 @@ init_emulator(void)
     }
 
 #define DTRACE_RETURN(p, m, f, a)                               \
+    GOOFUS_CHECK(p);                                    \
     if (DTRACE_ENABLED(function_return)) {                      \
         DTRACE_CHARBUF(process_name, DTRACE_TERM_BUF_SIZE);     \
         DTRACE_CHARBUF(mfa, DTRACE_TERM_BUF_SIZE);              \
@@ -1054,6 +1058,7 @@ init_emulator(void)
     }
 
 #define DTRACE_BIF_ENTRY(p, m, f, a)                            \
+    GOOFUS_CHECK(p);                                    \
     if (DTRACE_ENABLED(bif_entry)) {                            \
         DTRACE_CHARBUF(process_name, DTRACE_TERM_BUF_SIZE);     \
         DTRACE_CHARBUF(mfa, DTRACE_TERM_BUF_SIZE);              \
@@ -1063,6 +1068,7 @@ init_emulator(void)
     }
 
 #define DTRACE_BIF_RETURN(p, m, f, a)                           \
+    GOOFUS_CHECK(p);                                    \
     if (DTRACE_ENABLED(bif_return)) {                           \
         DTRACE_CHARBUF(process_name, DTRACE_TERM_BUF_SIZE);     \
         DTRACE_CHARBUF(mfa, DTRACE_TERM_BUF_SIZE);              \
@@ -1072,6 +1078,7 @@ init_emulator(void)
     }
 
 #define DTRACE_NIF_ENTRY(p, m, f, a)                            \
+    GOOFUS_CHECK(p);                                    \
     if (DTRACE_ENABLED(nif_entry)) {                            \
         DTRACE_CHARBUF(process_name, DTRACE_TERM_BUF_SIZE);     \
         DTRACE_CHARBUF(mfa, DTRACE_TERM_BUF_SIZE);              \
@@ -1081,6 +1088,7 @@ init_emulator(void)
     }
 
 #define DTRACE_NIF_RETURN(p, m, f, a)                           \
+    GOOFUS_CHECK(p);                                    \
     if (DTRACE_ENABLED(nif_return)) {                           \
         DTRACE_CHARBUF(process_name, DTRACE_TERM_BUF_SIZE);     \
         DTRACE_CHARBUF(mfa, DTRACE_TERM_BUF_SIZE);              \
@@ -1091,6 +1099,7 @@ init_emulator(void)
 
 #define DTRACE_GLOBAL_CALL_FROM_EXPORT(p,e)                                                    \
     do {                                                                                       \
+    GOOFUS_CHECK(p);                                    \
         if (DTRACE_ENABLED(global_function_entry)) {                                           \
             BeamInstr* fp = (BeamInstr *) (((Export *) (e))->addressv[erts_active_code_ix()]); \
             DTRACE_GLOBAL_CALL((p), (Eterm)fp[-3], (Eterm)fp[-2], fp[-1]);                     \
@@ -1106,17 +1115,72 @@ init_emulator(void)
     } while(0)
 
 #else /* USE_VM_PROBES */
-#define DTRACE_LOCAL_CALL(p, m, f, a)        do {} while (0)
-#define DTRACE_GLOBAL_CALL(p, m, f, a)       do {} while (0)
-#define DTRACE_GLOBAL_CALL_FROM_EXPORT(p, e) do {} while (0)
-#define DTRACE_RETURN(p, m, f, a)            do {} while (0)
+#define DTRACE_LOCAL_CALL(p, m, f, a)        do {GOOFUS_CHECK(p);} while (0)
+#define DTRACE_GLOBAL_CALL(p, m, f, a)       do {GOOFUS_CHECK(p);} while (0)
+#define DTRACE_GLOBAL_CALL_FROM_EXPORT(p, e) do {GOOFUS_CHECK(p);} while (0)
+#define DTRACE_RETURN(p, m, f, a)            do {GOOFUS_CHECK(p);} while (0)
 #define DTRACE_RETURN_FROM_PC(p)             do {} while (0)
-#define DTRACE_BIF_ENTRY(p, m, f, a)         do {} while (0)
-#define DTRACE_BIF_RETURN(p, m, f, a)        do {} while (0)
-#define DTRACE_NIF_ENTRY(p, m, f, a)         do {} while (0)
-#define DTRACE_NIF_RETURN(p, m, f, a)        do {} while (0)
+#define DTRACE_BIF_ENTRY(p, m, f, a)         do {GOOFUS_CHECK(p);} while (0)
+#define DTRACE_BIF_RETURN(p, m, f, a)        do {GOOFUS_CHECK(p);} while (0)
+#define DTRACE_NIF_ENTRY(p, m, f, a)         do {GOOFUS_CHECK(p);} while (0)
+#define DTRACE_NIF_RETURN(p, m, f, a)        do {GOOFUS_CHECK(p);} while (0)
 #endif /* USE_VM_PROBES */
 
+
+
+static FILE *goofus_fp = NULL;
+
+int
+goofus_open()
+{
+    if (goofus_fp == NULL) {
+        char path[1024];
+        int fd = -1;
+
+        sprintf(path, "/tmp/goofus.%d.out", getpid());
+        if ((fd = open(path, O_WRONLY|O_CREAT|O_EXCL, 0644)) > 0) {
+            goofus_fp = fdopen(fd, "w");
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int
+goofus_close()
+{
+    if (goofus_fp != NULL) {
+        fclose(goofus_fp);
+        goofus_fp = NULL;
+        return 1;
+    }
+    return 0;
+}
+
+int
+goofus_doit(Process *c_p)
+{
+    erts_dsprintf_buf_t *dsbufp = NULL;
+    char pidbuf[64];
+    Eterm esp;
+
+    if (goofus_fp == NULL || c_p == NULL) {
+        return 0;
+    }
+
+    /* Format the message */
+    dsbufp = erts_create_tmp_dsbuf(0);
+    dtrace_proc_str(c_p, pidbuf);
+    erts_print(ERTS_PRINT_DSBUF, (void *) dsbufp, "Pid %s\n", pidbuf);
+    erts_stack_dump_abbreviated(ERTS_PRINT_DSBUF, (void *) dsbufp, c_p);
+    erts_print(ERTS_PRINT_DSBUF, (void *) dsbufp, ".\n");
+    fwrite(dsbufp->str, 1, dsbufp->str_len, goofus_fp);
+    erts_destroy_tmp_dsbuf(dsbufp);
+    if (c_p != NULL) {
+        ERTS_GET_SCHEDULER_DATA_FROM_PROC(c_p)->goofus_count = 0;
+    }
+    return 1;
+}
 /*
  * process_main() is called twice:
  * The first call performs some initialisation, including exporting

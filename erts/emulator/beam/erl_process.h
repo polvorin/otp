@@ -677,6 +677,7 @@ struct ErtsSchedulerData_ {
     } io;
 
     Uint64 reductions;
+    Uint goofus_count;
     ErtsSchedWallTime sched_wall_time;
     ErtsGCInfo gc_info;
     ErtsPortTaskHandle nosuspend_port_task_handle;
@@ -1748,6 +1749,7 @@ void erts_cleanup_empty_process(Process* p);
 void erts_debug_verify_clean_empty_process(Process* p);
 #endif
 void erts_stack_dump(int to, void *to_arg, Process *);
+void erts_stack_dump_abbreviated(int to, void *to_arg, Process *);
 void erts_limited_stack_trace(int to, void *to_arg, Process *);
 void erts_program_counter_info(int to, void *to_arg, Process *);
 void erts_print_scheduler_info(int to, void *to_arg, ErtsSchedulerData *esdp);
