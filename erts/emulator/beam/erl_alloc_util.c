@@ -2724,6 +2724,9 @@ mbc_free(Allctr_t *allctr, ErtsAlcType_t type, void *p, Carrier_t **busy_pcrr_pp
     discard = 1;
 #endif
 
+    // ugly hack
+    discard = 0;
+
     if (discard) {
         mem_discard_start(allctr, blk, &discard_region);
     }
