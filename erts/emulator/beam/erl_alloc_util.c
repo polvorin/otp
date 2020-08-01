@@ -3970,7 +3970,7 @@ abandon_carrier(Allctr_t *allctr, Carrier_t *crr)
     allctr->remove_mbc(allctr, crr);
 
     /* Mark our free blocks as unused and reclaimable to the OS. */
-    carrier_mem_discard_free_blocks(allctr, crr);
+    //carrier_mem_discard_free_blocks(allctr, crr);
 
     cpool_insert(allctr, crr);
 
